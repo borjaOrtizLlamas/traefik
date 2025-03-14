@@ -43,6 +43,7 @@ type metricsMiddleware struct {
 	respsBytesCounter    gokitmetrics.Counter
 	baseLabels           []string
 	name                 string
+	misdirectedTLSCounter  gokitmetrics.Counter
 }
 
 // NewEntryPointMiddleware creates a new metrics middleware for an Entrypoint.
@@ -58,6 +59,7 @@ func NewEntryPointMiddleware(ctx context.Context, next http.Handler, registry me
 		respsBytesCounter:    registry.EntryPointRespsBytesCounter(),
 		baseLabels:           []string{"entrypoint", entryPointName},
 		name:                 nameEntrypoint,
+		misdirectedTLSCounter:  registry.MisdirectedTLSCounter(),
 	}
 }
 
@@ -74,6 +76,7 @@ func NewRouterMiddleware(ctx context.Context, next http.Handler, registry metric
 		respsBytesCounter:    registry.RouterRespsBytesCounter(),
 		baseLabels:           []string{"router", routerName, "service", serviceName},
 		name:                 nameRouter,
+		misdirectedTLSCounter:  registry.MisdirectedTLSCounter(),
 	}
 }
 
@@ -90,6 +93,7 @@ func NewServiceMiddleware(ctx context.Context, next http.Handler, registry metri
 		respsBytesCounter:    registry.ServiceRespsBytesCounter(),
 		baseLabels:           []string{"service", serviceName},
 		name:                 nameService,
+		misdirectedTLSCounter:  registry.MisdirectedTLSCounter(),
 	}
 }
 
@@ -167,6 +171,10 @@ func (m *metricsMiddleware) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 		code = grpcStatusCode(rw)
 	}
 
+	if capt.StatusCode() == 421 && req.TLS != nil {
+		m.misdirectedTLSCounter.With(labels...).Add(1)
+	}
+		
 	labels = append(labels, "code", strconv.Itoa(code))
 	m.reqDurationHistogram.With(labels...).ObserveFromStart(start)
 	m.reqsCounter.With(req.Header, labels...).Add(1)

@@ -114,6 +114,10 @@ func initStandardRegistry(config *types.Prometheus) Registry {
 		Name: configReloadsTotalName,
 		Help: "Config reloads",
 	}, []string{})
+	misdirectedTLSCounter := newCounterFrom(stdprometheus.CounterOpts{
+		Name: "traefik_tls_misdirected_requests_total",
+		Help: "Total number of TLS misdirected requests (HTTP 421)",
+	}, []string{"host"})
 	lastConfigReloadSuccess := newGaugeFrom(stdprometheus.GaugeOpts{
 		Name: configLastReloadSuccessName,
 		Help: "Last config reload success",
@@ -142,6 +146,7 @@ func initStandardRegistry(config *types.Prometheus) Registry {
 		lastConfigReloadSuccessGauge:   lastConfigReloadSuccess,
 		tlsCertsNotAfterTimestampGauge: tlsCertsNotAfterTimestamp,
 		openConnectionsGauge:           openConnections,
+		misdirectedTLSCounter: 			misdirectedTLSCounter,
 	}
 
 	if config.AddEntryPointsLabels {

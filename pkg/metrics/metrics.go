@@ -54,6 +54,8 @@ type Registry interface {
 	ServiceServerUpGauge() metrics.Gauge
 	ServiceReqsBytesCounter() metrics.Counter
 	ServiceRespsBytesCounter() metrics.Counter
+
+	MisdirectedTLSCounter() metrics.Counter
 }
 
 // NewVoidRegistry is a noop implementation of metrics.Registry.
@@ -87,6 +89,7 @@ func NewMultiRegistry(registries []Registry) Registry {
 	var serviceServerUpGauge []metrics.Gauge
 	var serviceReqsBytesCounter []metrics.Counter
 	var serviceRespsBytesCounter []metrics.Counter
+    var misdirectedTLSCounter []metrics.Counter
 
 	for _, r := range registries {
 		if r.ConfigReloadsCounter() != nil {
@@ -152,6 +155,9 @@ func NewMultiRegistry(registries []Registry) Registry {
 		if r.ServiceRespsBytesCounter() != nil {
 			serviceRespsBytesCounter = append(serviceRespsBytesCounter, r.ServiceRespsBytesCounter())
 		}
+		if r.MisdirectedTLSCounter() != nil {
+			misdirectedTLSCounter = append(misdirectedTLSCounter, r.MisdirectedTLSCounter())
+		}		
 	}
 
 	return &standardRegistry{
@@ -179,6 +185,7 @@ func NewMultiRegistry(registries []Registry) Registry {
 		serviceServerUpGauge:           multi.NewGauge(serviceServerUpGauge...),
 		serviceReqsBytesCounter:        multi.NewCounter(serviceReqsBytesCounter...),
 		serviceRespsBytesCounter:       multi.NewCounter(serviceRespsBytesCounter...),
+		misdirectedTLSCounter:			multi.NewCounter(misdirectedTLSCounter...),
 	}
 }
 
@@ -207,6 +214,7 @@ type standardRegistry struct {
 	serviceServerUpGauge           metrics.Gauge
 	serviceReqsBytesCounter        metrics.Counter
 	serviceRespsBytesCounter       metrics.Counter
+    misdirectedTLSCounter		   metrics.Counter
 }
 
 func (r *standardRegistry) IsEpEnabled() bool {
@@ -303,6 +311,10 @@ func (r *standardRegistry) ServiceReqsBytesCounter() metrics.Counter {
 
 func (r *standardRegistry) ServiceRespsBytesCounter() metrics.Counter {
 	return r.serviceRespsBytesCounter
+}
+
+func (r *standardRegistry) MisdirectedTLSCounter() metrics.Counter {
+    return r.misdirectedTLSCounter
 }
 
 // ScalableHistogram is a Histogram with a predefined time unit,
